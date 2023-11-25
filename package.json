@@ -15,7 +15,7 @@
     "check": "tsc --noEmit",
     "watch": "npm run clean && parcel watch",
     "build": "npm run clean && parcel build",
-    "postversion": "cross-env npm run publish && git push --follow-tags",
+    "postversion": "cross-env npm publish && git push --follow-tags",
     "ci": "npm run build && npm run check"
   },
   "devDependencies": {
