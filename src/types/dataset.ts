@@ -10,7 +10,7 @@ export interface IDataGovDataset<T> {
   data: IDataGovDatasetData[];
 }
 
-type IDataGovDatasetData = string[];
+export type IDataGovDatasetData = string[];
 
 export interface IDataGovDatasetMeta<T> {
   success: boolean;

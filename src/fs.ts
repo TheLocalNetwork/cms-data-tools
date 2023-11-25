@@ -25,7 +25,7 @@ export const getFilePath = (cacheDirectory: string, slug: string) => {
   const safePath = makeSafePath(slug);
   const filePath = path.join(cacheDirectory, `${safePath}.response.json`);
 
-  console.info({ filePath });
+  // console.info({ filePath });
 
   return filePath;
 };
@@ -44,6 +44,6 @@ export const makeSafePathChunk = (slug: string) =>
     .replace(repeatDashRegex, '-');
 
 export const cleanupCache = async (cacheDirectory: string) => {
-  console.info('cleaning up cache', { cacheDirectory });
+  // console.info('cleaning up cache', { cacheDirectory });
   return emptyDir(cacheDirectory);
 };
