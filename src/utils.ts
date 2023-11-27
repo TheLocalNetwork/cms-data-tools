@@ -1,11 +1,19 @@
-import { type AxiosResponse } from 'axios';
+import {
+  type AxiosHeaderValue,
+  type AxiosResponse,
+  type AxiosResponseHeaders,
+  type RawAxiosResponseHeaders,
+} from 'axios';
 import { isString } from 'lodash';
 
-const getHeaderValue = <T>(
-  headers: AxiosResponse<T>['headers'],
+const getHeaderValue = (
+  headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
   key: string
-) => {
-  return isString(headers[key]) ? (headers[key] as string) : undefined;
+): string | undefined => {
+  if (!(key in headers)) return undefined;
+  const val = headers[key] as AxiosHeaderValue;
+
+  return isString(val) ? val : undefined;
 };
 
 export const isCacheExpired = <T>(cachedResponse: AxiosResponse<T>) => {
@@ -15,20 +23,15 @@ export const isCacheExpired = <T>(cachedResponse: AxiosResponse<T>) => {
   return now < expiresDate;
 };
 
-export const isCacheOutOfDate = <T>(
+export const isCacheFresh = <T>(
   cachedResponse: AxiosResponse<T>,
   remoteResponse: AxiosResponse<T>
-) => {
-  const cachedLastModifiedHeader = getHeaderValue(
-    cachedResponse.headers,
-    'last-modified'
-  );
-  const remoteLastModifiedHeader = getHeaderValue(
-    remoteResponse.headers,
-    'last-modified'
-  );
-  const cachedLastModifiedDate = new Date(cachedLastModifiedHeader ?? 0);
-  const remoteLastModifiedDate = new Date(remoteLastModifiedHeader ?? 0);
+): boolean => {
+  const cachedHeader = getHeaderValue(cachedResponse.headers, 'last-modified');
+  const remoteHeader = getHeaderValue(remoteResponse.headers, 'last-modified');
 
-  return remoteLastModifiedDate > cachedLastModifiedDate;
+  const cachedDate = new Date(cachedHeader ?? 0);
+  const remoteDate = new Date(remoteHeader ?? 0);
+
+  return cachedDate >= remoteDate;
 };
