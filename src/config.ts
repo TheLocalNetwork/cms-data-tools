@@ -1,19 +1,41 @@
+import { type AxiosRequestConfig } from 'axios';
+import deepmerge from 'deepmerge';
 import { getDefaultCacheDirectory } from './fs';
 
-export interface IPackageConfig {
-  baseURL: string;
-  pageSize: number;
-  pageWaitMS: number;
+export interface ICacheConfig {
   enableLocalCache: boolean;
   cacheDirectory: string;
 }
+export interface INetworkConfig {
+  pageSize: number;
+  pageWaitMS: number;
+  simultaneousRequests: number;
+}
+export interface IPackageConfig {
+  cache: ICacheConfig;
+  network: INetworkConfig;
+  requestConfig: AxiosRequestConfig;
+}
 
-export const defaultPackageConfig: IPackageConfig = Object.freeze({
-  baseURL: `https://data.cms.gov`,
-  pageSize: 5_000,
-  pageWaitMS: 100,
+export const defaultCacheConfig: ICacheConfig = Object.freeze({
   enableLocalCache: true,
   cacheDirectory: getDefaultCacheDirectory(),
+});
+
+export const defaultNetworkConfig: INetworkConfig = Object.freeze({
+  pageSize: 5_000,
+  pageWaitMS: 100,
+  simultaneousRequests: 1,
+});
+
+export const defaultRequestConfig: AxiosRequestConfig = Object.freeze({
+  baseURL: `https://data.cms.gov`,
+});
+
+export const defaultPackageConfig: IPackageConfig = Object.freeze({
+  cache: { ...defaultCacheConfig },
+  network: { ...defaultNetworkConfig },
+  requestConfig: { ...defaultRequestConfig },
 });
 
 /**
@@ -25,16 +47,17 @@ let config: IPackageConfig = { ...defaultPackageConfig };
 
 export const getConfig = (): IPackageConfig => config;
 
+const mergedConfig = (toMerge: Partial<IPackageConfig>): IPackageConfig =>
+  deepmerge({ ...config }, toMerge);
+
 export const setConfig = (
-  newConfig?: Partial<IPackageConfig>
+  newConfig: Partial<IPackageConfig> = {}
 ): IPackageConfig => {
-  config = { ...config, ...newConfig };
+  config = mergedConfig(newConfig);
+
   return config;
 };
 
 export const withConfig = (
-  tempConfig?: Partial<IPackageConfig>
-): IPackageConfig => ({
-  ...config,
-  ...tempConfig,
-});
+  tempConfig: Partial<IPackageConfig> = {}
+): IPackageConfig => mergedConfig(tempConfig);

@@ -1,6 +1,6 @@
 import { type AxiosResponse } from 'axios';
 import { emptyDir, outputJson, readJson, remove } from 'fs-extra';
-import { deburr, isNil } from 'lodash';
+import { deburr } from 'lodash';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -20,12 +20,14 @@ export const getFromCache = async <T>(
 ): Promise<AxiosResponse<T, unknown> | undefined> => {
   return readJson(filePath, { throws: false })
     .then((cacheResult) => {
-      if (isNil(cacheResult)) return Promise.resolve(undefined);
       return cacheResult as Promise<AxiosResponse<T, unknown>>;
     })
-    .catch((err: Error) => {
-      if (err.message === 'ENOENT') return Promise.resolve(undefined);
-      else return Promise.reject(err);
+    .catch((err: NodeJS.ErrnoException) => {
+      if (err.code === 'ENOENT') return Promise.resolve(undefined);
+
+      return Promise.reject(
+        new Error(`Error reading cache file: ${filePath}`, { cause: err })
+      );
     });
 };
 

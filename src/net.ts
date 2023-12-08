@@ -1,5 +1,4 @@
-import { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { getAxiosClient } from './axiosClient';
+import axios, { type AxiosResponse } from 'axios';
 import { withConfig, type IPackageConfig } from './config';
 import { getFilePath, writeToCache } from './fs';
 import { isCacheFresh } from './utils';
@@ -9,19 +8,15 @@ export const requestRemoteBare = async <
   RequestData = unknown,
 >(
   slug: string,
-  customRequestConfig?: AxiosRequestConfig
+  config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
-  const requestConfig: AxiosRequestConfig<RequestData> = {
-    method: 'GET',
-    url: slug,
-    ...customRequestConfig,
-  };
+  const { requestConfig } = withConfig(config);
 
-  return getAxiosClient().request<
-    ResponseData,
-    AxiosResponse<ResponseData>,
-    RequestData
-  >(requestConfig);
+  return axios.request<ResponseData, AxiosResponse<ResponseData>, RequestData>({
+    url: slug,
+    method: 'GET',
+    ...requestConfig,
+  });
 };
 
 export const requestRemoteHead = <
@@ -29,19 +24,25 @@ export const requestRemoteHead = <
   RequestData = unknown,
 >(
   slug: string,
-  customRequestConfig?: AxiosRequestConfig
-) =>
-  requestRemoteBare<ResponseData, RequestData>(slug, {
-    ...customRequestConfig,
-    method: 'HEAD',
+  config: Partial<IPackageConfig> = {}
+) => {
+  const fnConfig = withConfig(config);
+
+  return requestRemoteBare<ResponseData, RequestData>(slug, {
+    ...fnConfig,
+    ...{
+      ...fnConfig.requestConfig,
+      method: 'HEAD',
+    },
   });
+};
 
 export const isRemoteNewer = async <ResponseData, RequestData>(
   slug: string,
   cachedResponse: AxiosResponse<ResponseData, RequestData>,
-  customRequestConfig?: AxiosRequestConfig
+  config: Partial<IPackageConfig> = {}
 ) =>
-  requestRemoteHead<ResponseData, RequestData>(slug, customRequestConfig).then(
+  requestRemoteHead<ResponseData, RequestData>(slug, config).then(
     (remoteResponse) => isCacheFresh(cachedResponse, remoteResponse)
   );
 
@@ -50,18 +51,15 @@ export const requestRemote = async <
   RequestData = unknown,
 >(
   slug: string,
-  options?: {
-    packageConfig?: Partial<IPackageConfig>;
-    requestConfig?: AxiosRequestConfig;
-  }
+  config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
-  const fnConfig = withConfig(options?.packageConfig);
-  const filePath = getFilePath(fnConfig.cacheDirectory, slug);
+  const fnConfig = withConfig(config);
+  const filePath = getFilePath(fnConfig.cache.cacheDirectory, slug);
 
-  const postRequest = (
+  const handlePostRequest = (
     response: AxiosResponse<ResponseData>
   ): Promise<AxiosResponse<ResponseData>> =>
-    (fnConfig.enableLocalCache
+    (fnConfig.cache.enableLocalCache
       ? writeToCache<ResponseData>(filePath, response).catch((error: Error) => {
           return Promise.reject(
             new Error(`cache write error: ${filePath}`, { cause: error })
@@ -70,8 +68,7 @@ export const requestRemote = async <
       : Promise.resolve()
     ).then(() => response);
 
-  return requestRemoteBare<ResponseData, RequestData>(
-    slug,
-    options?.requestConfig
-  ).then(postRequest);
+  return requestRemoteBare<ResponseData, RequestData>(slug, config).then(
+    handlePostRequest
+  );
 };

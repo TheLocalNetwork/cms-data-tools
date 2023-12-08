@@ -1,4 +1,4 @@
-import { type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import { type AxiosResponse } from 'axios';
 import { remove } from 'fs-extra';
 import { isNil } from 'lodash';
 import { withConfig, type IPackageConfig } from './config';
@@ -12,21 +12,19 @@ export const retrieveData = async <
   RequestData = unknown,
 >(
   slug: string,
-  options?: {
-    packageConfig?: Partial<IPackageConfig>;
-    requestConfig?: AxiosRequestConfig;
-  }
+  config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
-  const fnConfig = withConfig(options?.packageConfig);
-  if (!fnConfig.enableLocalCache) {
-    return requestRemote<ResponseData, RequestData>(slug, options);
+  const fnConfig = withConfig(config);
+
+  if (!fnConfig.cache.enableLocalCache) {
+    return requestRemote<ResponseData, RequestData>(slug, config);
   }
 
-  const filePath = getFilePath(fnConfig.cacheDirectory, slug);
+  const filePath = getFilePath(fnConfig.cache.cacheDirectory, slug);
   return retrieveCachableData<ResponseData, RequestData>(
     filePath,
     slug,
-    options
+    config
   );
 };
 
@@ -36,38 +34,38 @@ export const retrieveCachableData = async <
 >(
   filePath: string,
   slug: string,
-  options?: {
-    packageConfig?: Partial<IPackageConfig>;
-    requestConfig?: AxiosRequestConfig;
-  }
+  config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData, RequestData>> => {
+  const fnConfig = withConfig(config);
+
   return getFromCache<ResponseData>(filePath).then((cachedResponse) => {
     if (isNil(cachedResponse) || isCacheExpired(cachedResponse)) {
       return remove(filePath).then(() =>
-        requestRemote<ResponseData, RequestData>(slug, options)
+        requestRemote<ResponseData, RequestData>(slug, fnConfig)
       );
     }
 
-    return requestRemoteHead<ResponseData, RequestData>(
-      slug,
-      options?.requestConfig
-    ).then((headResponse) => {
-      if (isCacheFresh(cachedResponse, headResponse)) return cachedResponse;
-      return requestRemote<ResponseData, RequestData>(slug, options);
-    });
+    return requestRemoteHead<ResponseData, RequestData>(slug, config).then(
+      (headResponse) => {
+        if (isCacheFresh(cachedResponse, headResponse)) return cachedResponse;
+        return requestRemote<ResponseData, RequestData>(slug, config);
+      }
+    );
   });
 };
 
-export const getDataCatalogResponse = async (options?: {
-  packageConfig?: Partial<IPackageConfig>;
-  requestConfig?: AxiosRequestConfig;
-}): Promise<AxiosResponse<IDataGovCatalog>> => {
-  return retrieveData<IDataGovCatalog, never>(`data.json`, options);
+export const getDataCatalogResponse = async (
+  config: Partial<IPackageConfig> = {}
+): Promise<AxiosResponse<IDataGovCatalog>> => {
+  const fnConfig = withConfig(config);
+
+  return retrieveData<IDataGovCatalog, never>(`data.json`, fnConfig);
 };
 
-export const getDataCatalog = async (options?: {
-  packageConfig?: Partial<IPackageConfig>;
-  requestConfig?: AxiosRequestConfig;
-}): Promise<IDataGovCatalog> => {
-  return getDataCatalogResponse(options).then(({ data }) => data);
+export const getDataCatalog = async (
+  config: Partial<IPackageConfig> = {}
+): Promise<IDataGovCatalog> => {
+  const fnConfig = withConfig(config);
+
+  return getDataCatalogResponse(fnConfig).then(({ data }) => data);
 };

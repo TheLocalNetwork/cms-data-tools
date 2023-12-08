@@ -8,7 +8,10 @@ export {
   type IPackageConfig,
 } from './config';
 export { getDataCatalog, getDataCatalogResponse } from './data';
-export { init, type IInitOptions } from './init';
+export { init } from './init';
+
+import { init } from './init';
+init();
 
 // export class CmsDataTools {
 //   private config: IPackageConfig;
