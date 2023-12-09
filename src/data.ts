@@ -3,7 +3,7 @@ import { remove } from 'fs-extra';
 import { isNil } from 'lodash';
 import { cacheGet, getCacheFilePath } from './cache';
 import { withConfig, type IPackageConfig } from './config';
-import { requestRemote, requestRemoteHead } from './net';
+import { requestRemote, requestRemoteMeta } from './net';
 import { type IDataGovCatalog } from './types';
 import { isCacheExpired, isCacheFresh } from './utils';
 
@@ -38,7 +38,7 @@ export const retrieveCachableData = async <
 ): Promise<AxiosResponse<ResponseData, RequestData>> => {
   return Promise.all([
     cacheGet<ResponseData>(filePath),
-    requestRemoteHead<ResponseData, RequestData>(slug, config),
+    requestRemoteMeta<ResponseData, RequestData>(slug, config),
   ]).then((results) => {
     const [cachedResponse, headResponse] = results;
 

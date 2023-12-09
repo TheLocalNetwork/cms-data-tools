@@ -19,19 +19,17 @@ export const requestRemoteBare = async <
   });
 };
 
-export const requestRemoteHead = <
+export const requestRemoteMeta = <
   ResponseData = unknown,
   RequestData = unknown,
 >(
   slug: string,
   config: Partial<IPackageConfig> = {}
 ) => {
-  const fnConfig = withConfig(config);
-
   return requestRemoteBare<ResponseData, RequestData>(slug, {
-    ...fnConfig,
-    ...{
-      ...fnConfig.requestConfig,
+    ...config,
+    requestConfig: {
+      ...config.requestConfig,
       method: 'HEAD',
     },
   });
@@ -42,7 +40,7 @@ export const isRemoteNewer = async <ResponseData, RequestData>(
   cachedResponse: AxiosResponse<ResponseData, RequestData>,
   config: Partial<IPackageConfig> = {}
 ) =>
-  requestRemoteHead<ResponseData, RequestData>(slug, config).then(
+  requestRemoteMeta<ResponseData, RequestData>(slug, config).then(
     (remoteResponse) => isCacheFresh(cachedResponse, remoteResponse)
   );
 
@@ -53,13 +51,13 @@ export const requestRemote = async <
   slug: string,
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
-  const fnConfig = withConfig(config);
-  const filePath = getCacheFilePath(fnConfig.cache.cacheDirectory, slug);
+  const { cache } = withConfig(config);
+  const filePath = getCacheFilePath(cache.cacheDirectory, slug);
 
   const handlePostRequest = (
     response: AxiosResponse<ResponseData>
   ): Promise<AxiosResponse<ResponseData>> =>
-    (fnConfig.cache.enableLocalCache
+    (cache.enableLocalCache
       ? cachePut<ResponseData>(filePath, response).catch((error: Error) => {
           return Promise.reject(
             new Error(`cache write error: ${filePath}`, { cause: error })
