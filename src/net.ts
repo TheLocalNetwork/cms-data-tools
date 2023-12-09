@@ -1,6 +1,6 @@
 import axios, { type AxiosResponse } from 'axios';
+import { cachePut, getCacheFilePath } from './cache';
 import { withConfig, type IPackageConfig } from './config';
-import { getFilePath, writeToCache } from './fs';
 import { isCacheFresh } from './utils';
 
 export const requestRemoteBare = async <
@@ -54,13 +54,13 @@ export const requestRemote = async <
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
   const fnConfig = withConfig(config);
-  const filePath = getFilePath(fnConfig.cache.cacheDirectory, slug);
+  const filePath = getCacheFilePath(fnConfig.cache.cacheDirectory, slug);
 
   const handlePostRequest = (
     response: AxiosResponse<ResponseData>
   ): Promise<AxiosResponse<ResponseData>> =>
     (fnConfig.cache.enableLocalCache
-      ? writeToCache<ResponseData>(filePath, response).catch((error: Error) => {
+      ? cachePut<ResponseData>(filePath, response).catch((error: Error) => {
           return Promise.reject(
             new Error(`cache write error: ${filePath}`, { cause: error })
           );

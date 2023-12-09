@@ -1,8 +1,8 @@
 import { type AxiosResponse } from 'axios';
 import { remove } from 'fs-extra';
 import { isNil } from 'lodash';
+import { cacheGet, getCacheFilePath } from './cache';
 import { withConfig, type IPackageConfig } from './config';
-import { getFilePath, getFromCache } from './fs';
 import { requestRemote, requestRemoteHead } from './net';
 import { type IDataGovCatalog } from './types';
 import { isCacheExpired, isCacheFresh } from './utils';
@@ -14,13 +14,13 @@ export const retrieveData = async <
   slug: string,
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
-  const fnConfig = withConfig(config);
+  const { cache } = withConfig(config);
 
-  if (!fnConfig.cache.enableLocalCache) {
+  if (!cache.enableLocalCache) {
     return requestRemote<ResponseData, RequestData>(slug, config);
   }
 
-  const filePath = getFilePath(fnConfig.cache.cacheDirectory, slug);
+  const filePath = getCacheFilePath(cache.cacheDirectory, slug);
   return retrieveCachableData<ResponseData, RequestData>(
     filePath,
     slug,
@@ -36,20 +36,24 @@ export const retrieveCachableData = async <
   slug: string,
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData, RequestData>> => {
-  const fnConfig = withConfig(config);
+  return Promise.all([
+    cacheGet<ResponseData>(filePath),
+    requestRemoteHead<ResponseData, RequestData>(slug, config),
+  ]).then((results) => {
+    const [cachedResponse, headResponse] = results;
 
-  return getFromCache<ResponseData>(filePath).then((cachedResponse) => {
-    if (isNil(cachedResponse) || isCacheExpired(cachedResponse)) {
-      return remove(filePath).then(() =>
-        requestRemote<ResponseData, RequestData>(slug, fnConfig)
-      );
+    if (
+      !isNil(cachedResponse) &&
+      !isCacheExpired(cachedResponse) &&
+      isCacheFresh(cachedResponse, headResponse)
+    ) {
+      console.info(`cms-data-tools`, `cache is still valid`, { slug });
+      return Promise.resolve(cachedResponse);
     }
 
-    return requestRemoteHead<ResponseData, RequestData>(slug, config).then(
-      (headResponse) => {
-        if (isCacheFresh(cachedResponse, headResponse)) return cachedResponse;
-        return requestRemote<ResponseData, RequestData>(slug, config);
-      }
+    console.info(`cms-data-tools`, `cache is outdated`, { slug });
+    return remove(filePath).then(() =>
+      requestRemote<ResponseData, RequestData>(slug, config)
     );
   });
 };
@@ -57,15 +61,11 @@ export const retrieveCachableData = async <
 export const getDataCatalogResponse = async (
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<IDataGovCatalog>> => {
-  const fnConfig = withConfig(config);
-
-  return retrieveData<IDataGovCatalog, never>(`data.json`, fnConfig);
+  return retrieveData<IDataGovCatalog, never>(`data.json`, config);
 };
 
 export const getDataCatalog = async (
   config: Partial<IPackageConfig> = {}
 ): Promise<IDataGovCatalog> => {
-  const fnConfig = withConfig(config);
-
-  return getDataCatalogResponse(fnConfig).then(({ data }) => data);
+  return getDataCatalogResponse(config).then(({ data }) => data);
 };

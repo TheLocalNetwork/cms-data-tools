@@ -1,6 +1,5 @@
 import { type AxiosRequestConfig } from 'axios';
-import deepmerge from 'deepmerge';
-import { getDefaultCacheDirectory } from './fs';
+import { getDefaultCacheDirectory } from './cache';
 
 export interface ICacheConfig {
   enableLocalCache: boolean;
@@ -47,8 +46,10 @@ let config: IPackageConfig = { ...defaultPackageConfig };
 
 export const getConfig = (): IPackageConfig => config;
 
-const mergedConfig = (toMerge: Partial<IPackageConfig>): IPackageConfig =>
-  deepmerge({ ...config }, toMerge);
+const mergedConfig = (toMerge: Partial<IPackageConfig>): IPackageConfig => ({
+  ...config,
+  ...toMerge,
+});
 
 export const setConfig = (
   newConfig: Partial<IPackageConfig> = {}
