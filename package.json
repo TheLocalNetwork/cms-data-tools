@@ -2,7 +2,7 @@
   "name": "@thelocalnetwork/cms-data-tools",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TheLocalNetwork/cms-data-tools"
+    "url": "git+https://github.com/TheLocalNetwork/cms-data-tools.git"
   },
   "private": false,
   "version": "1.0.0-alpha.15",
