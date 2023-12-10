@@ -1,7 +1,12 @@
-import axios, { type AxiosResponse } from 'axios';
+import axios, {
+  type AxiosHeaderValue,
+  type AxiosResponse,
+  type AxiosResponseHeaders,
+  type RawAxiosResponseHeaders,
+} from 'axios';
+import { isString } from 'lodash';
+import { withConfig, type IPackageConfig } from '../config';
 import { cachePut, getCacheFilePath } from './cache';
-import { withConfig, type IPackageConfig } from './config';
-import { isCacheFresh } from './utils';
 
 export const requestRemoteBare = async <
   ResponseData = unknown,
@@ -11,6 +16,7 @@ export const requestRemoteBare = async <
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
   const { requestConfig } = withConfig(config);
+  console.log(`🚀 ~ file: net.ts:19 ~ requestConfig:`, requestConfig);
 
   return axios.request<ResponseData, AxiosResponse<ResponseData>, RequestData>({
     url: slug,
@@ -35,14 +41,14 @@ export const requestRemoteMeta = <
   });
 };
 
-export const isRemoteNewer = async <ResponseData, RequestData>(
-  slug: string,
-  cachedResponse: AxiosResponse<ResponseData, RequestData>,
-  config: Partial<IPackageConfig> = {}
-) =>
-  requestRemoteMeta<ResponseData, RequestData>(slug, config).then(
-    (remoteResponse) => isCacheFresh(cachedResponse, remoteResponse)
-  );
+// export const isRemoteNewer = async <ResponseData, RequestData>(
+//   slug: string,
+//   cachedResponse: AxiosResponse<ResponseData, RequestData>,
+//   config: Partial<IPackageConfig> = {}
+// ) =>
+//   requestRemoteMeta<ResponseData, RequestData>(slug, config).then(
+//     (remoteResponse) => isCacheFresh(cachedResponse, remoteResponse)
+//   );
 
 export const requestRemote = async <
   ResponseData = unknown,
@@ -69,4 +75,14 @@ export const requestRemote = async <
   return requestRemoteBare<ResponseData, RequestData>(slug, config).then(
     handlePostRequest
   );
+};
+
+export const getHeaderValue = (
+  headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
+  key: string
+): string | undefined => {
+  if (!(key in headers)) return undefined;
+  const val = headers[key] as AxiosHeaderValue;
+
+  return isString(val) ? val : undefined;
 };

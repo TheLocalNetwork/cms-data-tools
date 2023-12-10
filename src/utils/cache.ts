@@ -1,8 +1,9 @@
 import { type AxiosResponse } from 'axios';
-import { emptyDir, outputJson, readJson, remove } from 'fs-extra';
+import { outputJson, readJson, remove } from 'fs-extra';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { makeSafePath } from './fs';
+import { getHeaderValue } from './net';
 
 export const getDefaultCacheDirectory = () =>
   path.join(tmpdir(), `cache-cms-data-sync`);
@@ -40,5 +41,22 @@ export const cacheGet = async <T>(
     });
 };
 
-export const cacheCleanup = async (cacheDirectory: string) =>
-  emptyDir(cacheDirectory);
+export const isCacheExpired = <T>(cachedResponse: AxiosResponse<T>) => {
+  const expiresHeader = getHeaderValue(cachedResponse.headers, 'expires');
+  const now = new Date();
+  const expiresDate = new Date(expiresHeader ?? 0);
+  return now < expiresDate;
+};
+
+export const isCacheFresh = <T>(
+  cachedResponse: AxiosResponse<T>,
+  remoteResponse: AxiosResponse<T>
+): boolean => {
+  const cachedHeader = getHeaderValue(cachedResponse.headers, 'last-modified');
+  const remoteHeader = getHeaderValue(remoteResponse.headers, 'last-modified');
+
+  const cachedDate = new Date(cachedHeader ?? 0);
+  const remoteDate = new Date(remoteHeader ?? 0);
+
+  return cachedDate >= remoteDate;
+};

@@ -1,11 +1,14 @@
 import { type AxiosResponse } from 'axios';
 import { remove } from 'fs-extra';
 import { isNil } from 'lodash';
-import { cacheGet, getCacheFilePath } from './cache';
 import { withConfig, type IPackageConfig } from './config';
-import { requestRemote, requestRemoteMeta } from './net';
-import { type IDataGovCatalog } from './types';
-import { isCacheExpired, isCacheFresh } from './utils';
+import {
+  cacheGet,
+  getCacheFilePath,
+  isCacheExpired,
+  isCacheFresh,
+} from './utils/cache';
+import { requestRemote, requestRemoteMeta } from './utils/net';
 
 export const retrieveData = async <
   ResponseData = unknown,
@@ -56,16 +59,4 @@ export const retrieveCachableData = async <
       requestRemote<ResponseData, RequestData>(slug, config)
     );
   });
-};
-
-export const getDataCatalogResponse = async (
-  config: Partial<IPackageConfig> = {}
-): Promise<AxiosResponse<IDataGovCatalog>> => {
-  return retrieveData<IDataGovCatalog, never>(`data.json`, config);
-};
-
-export const getDataCatalog = async (
-  config: Partial<IPackageConfig> = {}
-): Promise<IDataGovCatalog> => {
-  return getDataCatalogResponse(config).then(({ data }) => data);
 };

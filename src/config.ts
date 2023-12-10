@@ -1,5 +1,5 @@
 import { type AxiosRequestConfig } from 'axios';
-import { getDefaultCacheDirectory } from './cache';
+import { getDefaultCacheDirectory } from './utils/cache';
 
 export interface ICacheConfig {
   enableLocalCache: boolean;
@@ -16,26 +16,26 @@ export interface IPackageConfig {
   requestConfig: AxiosRequestConfig;
 }
 
-export const defaultCacheConfig: ICacheConfig = Object.freeze({
+export const defaultCacheConfig: Readonly<ICacheConfig> = {
   enableLocalCache: true,
   cacheDirectory: getDefaultCacheDirectory(),
-});
+};
 
-export const defaultNetworkConfig: INetworkConfig = Object.freeze({
+export const defaultNetworkConfig: Readonly<INetworkConfig> = {
   pageSize: 5_000,
   pageWaitMS: 100,
   simultaneousRequests: 1,
-});
+};
 
-export const defaultRequestConfig: AxiosRequestConfig = Object.freeze({
+export const defaultRequestConfig: Readonly<AxiosRequestConfig> = {
   baseURL: `https://data.cms.gov`,
-});
+};
 
-export const defaultPackageConfig: IPackageConfig = Object.freeze({
+export const defaultPackageConfig: Readonly<IPackageConfig> = {
   cache: { ...defaultCacheConfig },
   network: { ...defaultNetworkConfig },
   requestConfig: { ...defaultRequestConfig },
-});
+};
 
 /**
  * config SINGLETON
@@ -46,19 +46,20 @@ let config: IPackageConfig = { ...defaultPackageConfig };
 
 export const getConfig = (): IPackageConfig => config;
 
-const mergedConfig = (toMerge: Partial<IPackageConfig>): IPackageConfig => ({
-  ...config,
-  ...toMerge,
-});
-
 export const setConfig = (
   newConfig: Partial<IPackageConfig> = {}
 ): IPackageConfig => {
-  config = mergedConfig(newConfig);
+  config = withConfig(newConfig); // mutate the singleton
 
   return config;
 };
 
 export const withConfig = (
   tempConfig: Partial<IPackageConfig> = {}
-): IPackageConfig => mergedConfig(tempConfig);
+): IPackageConfig => {
+  return {
+    cache: { ...config.cache, ...tempConfig.cache },
+    network: { ...config.network, ...tempConfig.network },
+    requestConfig: { ...config.requestConfig, ...tempConfig.requestConfig },
+  };
+};
