@@ -10,10 +10,16 @@ export interface INetworkConfig {
   pageWaitMS: number;
   simultaneousRequests: number;
 }
-export interface IPackageConfig {
+export interface IPackageConfigSingleton {
   cache: ICacheConfig;
   network: INetworkConfig;
   requestConfig: AxiosRequestConfig;
+}
+
+export interface IPackageConfig {
+  cache?: Partial<ICacheConfig>;
+  network?: Partial<INetworkConfig>;
+  requestConfig?: AxiosRequestConfig;
 }
 
 export const defaultCacheConfig: Readonly<ICacheConfig> = {
@@ -31,7 +37,7 @@ export const defaultRequestConfig: Readonly<AxiosRequestConfig> = {
   baseURL: `https://data.cms.gov`,
 };
 
-export const defaultPackageConfig: Readonly<IPackageConfig> = {
+export const defaultPackageConfig: Readonly<IPackageConfigSingleton> = {
   cache: { ...defaultCacheConfig },
   network: { ...defaultNetworkConfig },
   requestConfig: { ...defaultRequestConfig },
@@ -42,21 +48,21 @@ export const defaultPackageConfig: Readonly<IPackageConfig> = {
  * @name config
  * @private
  */
-let config: IPackageConfig = { ...defaultPackageConfig };
+let config: IPackageConfigSingleton = { ...defaultPackageConfig };
 
-export const getConfig = (): IPackageConfig => config;
+export const getConfig = (): IPackageConfigSingleton => config;
 
 export const setConfig = (
-  newConfig: Partial<IPackageConfig> = {}
-): IPackageConfig => {
+  newConfig: IPackageConfig = {}
+): IPackageConfigSingleton => {
   config = withConfig(newConfig); // mutate the singleton
 
   return config;
 };
 
 export const withConfig = (
-  tempConfig: Partial<IPackageConfig> = {}
-): IPackageConfig => {
+  tempConfig: IPackageConfig = {}
+): IPackageConfigSingleton => {
   return {
     cache: { ...config.cache, ...tempConfig.cache },
     network: { ...config.network, ...tempConfig.network },
