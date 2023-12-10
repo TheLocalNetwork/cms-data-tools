@@ -15,3 +15,11 @@ export type TypedObject<T> = Record<string, T>;
 
 export type Keys<T> = keyof T;
 export type Values<T> = T[Keys<T>];
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? RecursivePartial<U>[]
+    : T[P] extends object | undefined
+      ? RecursivePartial<T[P]>
+      : T[P];
+};
