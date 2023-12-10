@@ -1,5 +1,5 @@
 import { compact, toNumber, toString } from 'lodash';
-import { type IDataGovDataset, type TDataGovUUID } from './types';
+import { uuidRegex, type IDataGovCatalogDataset, type IDataGovDataset, type TDataGovUUID } from './types';
 
 export const getDatasetUrl = (
   id: TDataGovUUID,
@@ -9,6 +9,13 @@ export const getDatasetUrl = (
     `data-api/v1/dataset/${id}/data-viewer`,
     searchParams?.toString(),
   ]).join('?');
+
+export const getIdFromDatasetIdentifier = (
+  identifier: IDataGovCatalogDataset['identifier']
+) => {
+  const match = identifier.match(uuidRegex);
+  return match ? match[0] : null;
+};
 
 export const schemaFieldsTypeMap: Record<string, string> = {
   string: 'string',
