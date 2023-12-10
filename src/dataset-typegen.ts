@@ -1,17 +1,16 @@
+import { camelCase, upperFirst } from 'lodash';
+import { getCatalogDataSetById } from './catalog';
 import { type IPackageConfig } from './config';
 import { retrieveData } from './data';
 import { getDatasetUrl, schemaFieldsTypeMap } from './dataset';
 import {
   type IDataGovDataset,
   type IDataGovDatasetTableSchemaField,
-  type TDataGovUUID,
+  type TDataGovUUID
 } from './types';
 
-export const generateDatasetType = async <T>(
+export const getDatasetMeta = async <T>(
   id: TDataGovUUID,
-  getInterfaceName:
-    | string
-    | ((dataset: IDataGovDataset<T>) => string) = `IDataset`,
   config?: Partial<IPackageConfig>
 ) => {
   const params = { size: '0' };
@@ -19,20 +18,32 @@ export const generateDatasetType = async <T>(
   const datasetUrl = getDatasetUrl(id, searchParams);
 
   return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then(
-    ({ data }) => {
-      const fields =
-        data.meta.data_file_meta_data.tableSchema.descriptor.fields;
-
-      const interfaceName =
-        typeof getInterfaceName === 'function'
-          ? getInterfaceName(data)
-          : getInterfaceName;
-
-      const typeScript = generateDatasetTypeFromFields(fields, interfaceName);
-
-      return typeScript;
-    }
+    (result) => result.data.meta
   );
+};
+
+export const getDatasetTypeInterfaceName = (title: string) => `I${upperFirst(camelCase(title))}`
+
+export const generateDatasetType = async <T>(
+  id: TDataGovUUID,
+  interfaceName?: string,
+  config?: Partial<IPackageConfig>
+) => {
+  return Promise.all([
+    getDatasetMeta<T>(id, config),
+    getCatalogDataSetById(id, config),
+  ]).then((results) => {
+    const [datasetMeta, catalogDataset] = results;
+    const fields =
+      datasetMeta.data_file_meta_data.tableSchema.descriptor.fields;
+
+    const defaultInterfaceName = getDatasetTypeInterfaceName(catalogDataset?.title ?? `Dataset${id}`);
+
+    return generateDatasetTypeFromFields(
+      fields,
+      interfaceName ?? defaultInterfaceName
+    );
+  });
 };
 
 const generateDatasetTypeFromFields = <T>(
@@ -44,8 +55,7 @@ const generateDatasetTypeFromFields = <T>(
   );
 
   const typeScript = [
-    `export interface ${interfaceName}`,
-    `{`,
+    `export interface ${interfaceName} {`,
     ...properties,
     `}`,
   ].join('\n');
@@ -64,14 +74,20 @@ const generateDatasetTypeFromFieldsItem = <T>(
 
   const jsDoc = generateDatasetTypeFromFieldsItemJsDoc(field);
 
-  return [jsDoc, `${key}: ${type};`, ``].join(`\n\t`);
+  return [
+    ``, 
+    jsDoc, 
+    ``,
+    `${key}: ${type};`, 
+    ``,
+  ].join(`\n`);
 };
 
 const generateDatasetTypeFromFieldsItemJsDoc = <T>(
   field: IDataGovDatasetTableSchemaField<T>
 ) => {
   const key = field.name.toString();
-  const jsDocLineSeparator = `\n\t * `;
+  const jsDocLineSeparator = `\n * `;
 
   const originalJSON = Object.entries(field).map(
     ([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`
@@ -88,5 +104,5 @@ const generateDatasetTypeFromFieldsItemJsDoc = <T>(
       '```',
     ].join(jsDocLineSeparator);
 
-  return [`\t/**`, jsDocBody, ` */`].join(`\n\t`);
+  return [`/**`, jsDocBody, ` */`].join(`\n`);
 };
