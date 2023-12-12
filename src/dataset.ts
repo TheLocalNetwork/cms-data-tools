@@ -1,5 +1,10 @@
 import { compact, toNumber, toString } from 'lodash';
-import { uuidRegex, type IDataGovCatalogDataset, type IDataGovDataset, type TDataGovUUID } from './types';
+import {
+  uuidRegex,
+  type IDataGovCatalogDataset,
+  type IDataGovDataset,
+  type TDataGovUUID,
+} from './types';
 
 export const getDatasetUrl = (
   id: TDataGovUUID,
@@ -12,9 +17,11 @@ export const getDatasetUrl = (
 
 export const getIdFromDatasetIdentifier = (
   identifier: IDataGovCatalogDataset['identifier']
-) => {
+): TDataGovUUID => {
   const match = identifier.match(uuidRegex);
-  return match ? match[0] : null;
+
+  if (!match) throw new Error(`Invalid identifier: ${identifier}`);
+  return match[0];
 };
 
 export const schemaFieldsTypeMap: Record<string, string> = {

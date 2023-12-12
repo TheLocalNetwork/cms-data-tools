@@ -1,6 +1,8 @@
 import { type AxiosResponse } from 'axios';
+import { some } from 'lodash';
 import { type IPackageConfig } from './config';
 import { retrieveData } from './data';
+import { getIdFromDatasetIdentifier } from './dataset';
 import {
   isTDataGovUUID,
   type IDataGovCatalog,
@@ -17,7 +19,18 @@ export const getCatalogAxiosResponse = async (
 export const getCatalog = async (
   config: Partial<IPackageConfig> = {}
 ): Promise<IDataGovCatalog> => {
-  return getCatalogAxiosResponse(config).then(({ data }) => data);
+  return getCatalogAxiosResponse(config)
+    .then(({ data }) => data)
+    .then(enhanceCatalogData);
+};
+
+const enhanceCatalogData = (data: IDataGovCatalog) => {
+  const dataset = data.dataset.map((item) => {
+    const id = getIdFromDatasetIdentifier(item.identifier);
+    return { ...item, id };
+  });
+
+  return { ...data, dataset };
 };
 
 export const getCatalogDataSetById = async (
@@ -36,6 +49,11 @@ export const getCatalogDataSetsByKeyword = async (
   options?: Partial<IPackageConfig>
 ): Promise<IDataGovCatalogDataset[]> => {
   return getCatalog(options).then((catalog) =>
-    catalog.dataset.filter((item) => item.keyword.includes(keyword))
+    catalog.dataset.filter((item) => {
+      const hasKeyword = item.keyword.includes(keyword);
+      const hasApiDistribution = some(item.distribution, { format: 'API' });
+
+      return hasKeyword && hasApiDistribution;
+    })
   );
 };
