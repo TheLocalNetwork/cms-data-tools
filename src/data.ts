@@ -53,7 +53,6 @@ export const retrieveCachableData = async <
       return Promise.resolve(cachedResponse);
     }
 
-    console.info(`cms-data-tools`, `cache is outdated`, { slug });
     return remove(filePath).then(() =>
       requestRemote<ResponseData, RequestData>(slug, config)
     );
