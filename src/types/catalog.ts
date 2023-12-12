@@ -10,6 +10,7 @@ import {
   type TDataGovTemporal,
   type TDataGovURI,
   type TDataGovURIorJSON,
+  type TDataGovUUID,
   type UnknownObject,
 } from './util';
 
@@ -34,6 +35,9 @@ export interface IDataGovCatalog {
 }
 
 export interface IDataGovCatalogDataset {
+  /** @description cms-data-tools enhancement */
+  id: TDataGovUUID;
+
   /** @description IRI for the JSON-LD data type. This should be dcat:Dataset for each Dataset. */
   [`@type`]?: `dcat:Dataset`;
 
