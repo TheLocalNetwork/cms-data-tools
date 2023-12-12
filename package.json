@@ -14,13 +14,12 @@
     "clean": "rimraf ./dist ./.parcel-cache",
     "watch": "npm run clean && parcel watch",
     "build": "npm run clean && parcel build",
+    "prepublish": "npm run build",
     "preversion": "cross-env npm run qc && npm run build",
-    "postversion": "cross-env git push --follow-tags && npm publish",
+    "postversion": "cross-env git push --follow-tags",
     "lint": "eslint ./src/**/*.ts",
     "check": "tsc --noEmit",
-    "qc": "cross-env npm run check && npm run lint",
-    "dev": "npm run watch",
-    "ci": "cross-env npm run qc && npm run build"
+    "ci": "cross-env npm run check && npm run lint"
   },
   "devDependencies": {
     "@parcel/packager-ts": "^2.10.3",
