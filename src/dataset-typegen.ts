@@ -24,7 +24,7 @@ export const getDatasetMeta = async <T>(
 
 export const getDatasetTypeInterfaceName = (title: string) => `I${upperFirst(camelCase(title))}`
 
-export const generateDatasetType = async <T>(
+export const generateDatasetTypeById = async <T>(
   id: TDataGovUUID,
   interfaceName?: string,
   config?: Partial<IPackageConfig>
