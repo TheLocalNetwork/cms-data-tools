@@ -22,6 +22,7 @@ module.exports = {
         fixStyle: 'inline-type-imports',
       },
     ],
+    'no-console': ["error", { allow: ["warn", "error"] }]
   },
   overrides: [
     {

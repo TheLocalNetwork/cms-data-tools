@@ -16,7 +16,6 @@ export const requestRemoteBare = async <
   config: Partial<IPackageConfig> = {}
 ): Promise<AxiosResponse<ResponseData>> => {
   const { requestConfig } = withConfig(config);
-  console.log(`🚀 ~ file: net.ts:19 ~ requestConfig:`, requestConfig);
 
   return axios.request<ResponseData, AxiosResponse<ResponseData>, RequestData>({
     url: slug,

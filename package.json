@@ -12,13 +12,15 @@
   "types": "dist/types.d.ts",
   "scripts": {
     "clean": "rimraf ./dist ./.parcel-cache",
-    "check": "tsc --noEmit",
-    "dev": "npm run watch",
     "watch": "npm run clean && parcel watch",
     "build": "npm run clean && parcel build",
-    "preversion": "cross-env npm run build",
+    "preversion": "cross-env npm run qc && npm run build",
     "postversion": "cross-env git push --follow-tags && npm publish",
-    "ci": "npm run build && npm run check"
+    "lint": "eslint ./src/**/*.ts",
+    "check": "tsc --noEmit",
+    "qc": "cross-env npm run check && npm run lint",
+    "dev": "npm run watch",
+    "ci": "cross-env npm run qc && npm run build"
   },
   "devDependencies": {
     "@parcel/packager-ts": "^2.10.3",
@@ -28,8 +30,8 @@
     "@types/fs-extra": "^11.0.4",
     "@types/lodash": "^4.14.202",
     "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.2",
-    "@typescript-eslint/parser": "^6.13.2",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.55.0",
     "parcel": "^2.10.3",
