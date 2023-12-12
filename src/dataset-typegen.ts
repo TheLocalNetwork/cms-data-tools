@@ -1,13 +1,14 @@
 import { camelCase, upperFirst } from 'lodash';
-import { getCatalogDataSetById } from './catalog';
+import { getCatalogDataSetById, getCatalogDataSetsByKeyword } from './catalog';
 import { type IPackageConfig } from './config';
 import { retrieveData } from './data';
 import { getDatasetUrl, schemaFieldsTypeMap } from './dataset';
 import {
   type IDataGovDataset,
   type IDataGovDatasetTableSchemaField,
-  type TDataGovUUID
+  type TDataGovUUID,
 } from './types';
+import { handleSettledPromise } from './utils/promise';
 
 export const getDatasetMeta = async <T>(
   id: TDataGovUUID,
@@ -22,7 +23,8 @@ export const getDatasetMeta = async <T>(
   );
 };
 
-export const getDatasetTypeInterfaceName = (title: string) => `I${upperFirst(camelCase(title))}`
+export const getDatasetTypeInterfaceName = (title: string) =>
+  `I${upperFirst(camelCase(title))}`;
 
 export const generateDatasetTypeById = async <T>(
   id: TDataGovUUID,
@@ -37,12 +39,27 @@ export const generateDatasetTypeById = async <T>(
     const fields =
       datasetMeta.data_file_meta_data.tableSchema.descriptor.fields;
 
-    const defaultInterfaceName = getDatasetTypeInterfaceName(catalogDataset?.title ?? `Dataset${id}`);
+    const defaultInterfaceName = getDatasetTypeInterfaceName(
+      catalogDataset?.title ?? `Dataset${id}`
+    );
 
     return generateDatasetTypeFromFields(
       fields,
       interfaceName ?? defaultInterfaceName
     );
+  });
+};
+
+export const generateDatasetTypeByKeyword = async (keyword: string) => {
+  return getCatalogDataSetsByKeyword(keyword).then((datasetsByKeyword) => {
+    return Promise.allSettled(
+      datasetsByKeyword.map((dataset) =>
+        generateDatasetTypeById(dataset.id).then((typeInterface) => ({
+          dataset,
+          typeInterface,
+        }))
+      )
+    ).then(handleSettledPromise);
   });
 };
 
@@ -74,13 +91,7 @@ const generateDatasetTypeFromFieldsItem = <T>(
 
   const jsDoc = generateDatasetTypeFromFieldsItemJsDoc(field);
 
-  return [
-    ``, 
-    jsDoc, 
-    ``,
-    `${key}: ${type};`, 
-    ``,
-  ].join(`\n`);
+  return [``, jsDoc, ``, `${key}: ${type};`, ``].join(`\n`);
 };
 
 const generateDatasetTypeFromFieldsItemJsDoc = <T>(
