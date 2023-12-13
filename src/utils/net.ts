@@ -4,9 +4,12 @@ import axios, {
   type AxiosResponseHeaders,
   type RawAxiosResponseHeaders,
 } from 'axios';
+import axiosRetry from 'axios-retry';
 import { isString } from 'lodash';
 import { withConfig, type IPackageConfig } from '../config';
 import { cachePut, getCacheFilePath } from './cache';
+
+axiosRetry(axios, { retries: 0 });
 
 export const requestRemoteBare = async <
   ResponseData = unknown,

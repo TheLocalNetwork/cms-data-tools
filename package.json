@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "axios": "^1.6.2",
+    "axios-retry": "^4.0.0",
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
     "rimraf": "^5.0.5"

@@ -35,6 +35,9 @@ export const defaultNetworkConfig: Readonly<INetworkConfig> = {
 
 export const defaultRequestConfig: Readonly<AxiosRequestConfig> = {
   baseURL: `https://data.cms.gov`,
+  'axios-retry': {
+    retries: 0,
+  },
 };
 
 export const defaultPackageConfig: Readonly<IPackageConfigSingleton> = {
