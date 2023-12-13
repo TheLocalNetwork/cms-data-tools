@@ -44,3 +44,24 @@ export const getIdFromDatasetIdentifier = (
   if (!match) throw new Error(`Invalid identifier: ${identifier}`);
   return match[0];
 };
+
+export const getDatasetData = async <T>(
+  id: TDataGovUUID,
+  offset = 0,
+  pageSize = 5_000,
+  config?: Partial<IPackageConfig>
+) => {
+  const params: Record<string, string> = {
+    size: pageSize.toString(),
+    offset: offset.toString(),
+  };
+  const searchParams = new URLSearchParams(params);
+  const datasetUrl = getDatasetUrl(id, searchParams);
+  console.time(datasetUrl);
+
+  return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then((result) => {
+    const { data } = result.data;
+    console.timeEnd(datasetUrl);
+    return data;
+  });
+};
