@@ -1,10 +1,17 @@
-import { compact, toNumber, toString } from 'lodash';
+import { compact } from 'lodash';
+import { type IPackageConfig } from './config';
+import { retrieveData } from './data';
 import {
   uuidRegex,
   type IDataGovCatalogDataset,
   type IDataGovDataset,
   type TDataGovUUID,
 } from './types';
+
+export {
+  generateDatasetTypeById,
+  generateDatasetTypeByKeyword,
+} from './utils/dataset-typegen';
 
 export const getDatasetUrl = (
   id: TDataGovUUID,
@@ -15,6 +22,19 @@ export const getDatasetUrl = (
     searchParams?.toString(),
   ]).join('?');
 
+export const getDatasetMeta = async <T>(
+  id: TDataGovUUID,
+  config?: Partial<IPackageConfig>
+) => {
+  const params = { size: '0' };
+  const searchParams = new URLSearchParams(params);
+  const datasetUrl = getDatasetUrl(id, searchParams);
+
+  return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then(
+    (result) => result.data.meta
+  );
+};
+
 export const getIdFromDatasetIdentifier = (
   identifier: IDataGovCatalogDataset['identifier']
 ): TDataGovUUID => {
@@ -22,39 +42,4 @@ export const getIdFromDatasetIdentifier = (
 
   if (!match) throw new Error(`Invalid identifier: ${identifier}`);
   return match[0];
-};
-
-export const schemaFieldsTypeMap: Record<string, string> = {
-  string: 'string',
-  number: 'number',
-};
-
-const schemaFieldsTypeParsers: Record<
-  keyof typeof schemaFieldsTypeMap,
-  (val: unknown) => unknown
-> = {
-  string: toString,
-  number: toNumber,
-};
-
-const getSchemaFieldsTypeParser = (type: keyof typeof schemaFieldsTypeMap) =>
-  schemaFieldsTypeParsers[type] ?? (() => undefined);
-
-export const jsonApiToRecordSet = <T>(dataSet: IDataGovDataset<T>) => {
-  const { fields } = dataSet.meta.data_file_meta_data.tableSchema.descriptor;
-
-  return dataSet.data.map((rowValues) => {
-    const record: T = fields.reduce<Partial<T>>((acc, field, columnIndex) => {
-      const { name, type } = field;
-      const value = rowValues[columnIndex];
-      const parsedValue = getSchemaFieldsTypeParser(type)(value);
-
-      return {
-        ...acc,
-        [name]: parsedValue,
-      };
-    }, {}) as T;
-
-    return record;
-  });
 };

@@ -1,27 +1,13 @@
 import { camelCase, upperFirst } from 'lodash';
-import { getCatalogDataSetById, getCatalogDataSetsByKeyword } from './catalog';
-import { type IPackageConfig } from './config';
-import { retrieveData } from './data';
-import { getDatasetUrl, schemaFieldsTypeMap } from './dataset';
+import { getCatalogDataSetById, getCatalogDataSetsByKeyword } from '../catalog';
+import { type IPackageConfig } from '../config';
+import { getDatasetMeta } from '../dataset';
 import {
-  type IDataGovDataset,
   type IDataGovDatasetTableSchemaField,
   type TDataGovUUID,
-} from './types';
-import { handleSettledPromise } from './utils/promise';
-
-export const getDatasetMeta = async <T>(
-  id: TDataGovUUID,
-  config?: Partial<IPackageConfig>
-) => {
-  const params = { size: '0' };
-  const searchParams = new URLSearchParams(params);
-  const datasetUrl = getDatasetUrl(id, searchParams);
-
-  return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then(
-    (result) => result.data.meta
-  );
-};
+} from '../types';
+import { schemaFieldsTypeMap } from './dataset-schema';
+import { handleSettledPromise } from './promise';
 
 export const getDatasetTypeInterfaceName = (title: string) =>
   `I${upperFirst(camelCase(title))}`;
