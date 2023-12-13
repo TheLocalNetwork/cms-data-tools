@@ -1,5 +1,10 @@
 import { type AxiosRequestConfig } from 'axios';
+import { type IAxiosRetryConfigExtended } from 'axios-retry';
 import { getDefaultCacheDirectory } from './utils/cache';
+
+export interface IAxiosRequestConfigWithRetry extends AxiosRequestConfig {
+  'axios-retry'?: IAxiosRetryConfigExtended;
+}
 
 export interface ICacheConfig {
   enableLocalCache: boolean;
@@ -13,13 +18,13 @@ export interface INetworkConfig {
 export interface IPackageConfigSingleton {
   cache: ICacheConfig;
   network: INetworkConfig;
-  requestConfig: AxiosRequestConfig;
+  requestConfig: IAxiosRequestConfigWithRetry;
 }
 
 export interface IPackageConfig {
   cache?: Partial<ICacheConfig>;
   network?: Partial<INetworkConfig>;
-  requestConfig?: AxiosRequestConfig;
+  requestConfig?: IAxiosRequestConfigWithRetry;
 }
 
 export const defaultCacheConfig: Readonly<ICacheConfig> = {
@@ -33,7 +38,7 @@ export const defaultNetworkConfig: Readonly<INetworkConfig> = {
   simultaneousRequests: 1,
 };
 
-export const defaultRequestConfig: Readonly<AxiosRequestConfig> = {
+export const defaultRequestConfig: Readonly<IAxiosRequestConfigWithRetry> = {
   baseURL: `https://data.cms.gov`,
   'axios-retry': {
     retries: 0,
