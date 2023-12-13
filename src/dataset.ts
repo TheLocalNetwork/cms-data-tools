@@ -11,6 +11,7 @@ import {
 export {
   generateDatasetTypeById,
   generateDatasetTypeByKeyword,
+  getDatasetTypeInterfaceName,
 } from './utils/dataset-typegen';
 
 export const getDatasetUrl = (
