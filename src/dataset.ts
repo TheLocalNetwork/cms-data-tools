@@ -67,9 +67,7 @@ export const downloadDatasetData = async (
 
   // eslint-disable-next-line no-console
   console.info({
-    offset: dataSetMeta.offset,
     total_rows: dataSetMeta.total_rows,
-    size: dataSetMeta.size,
     numRequests,
     offsets,
   });
