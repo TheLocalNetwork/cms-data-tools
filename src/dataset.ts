@@ -1,5 +1,9 @@
+import { outputJson } from 'fs-extra';
 import { compact } from 'lodash';
-import { type IPackageConfig } from './config';
+import path from 'node:path';
+// import pLimit from 'p-limit';
+import pLimit from 'p-limit';
+import { withConfig, type IPackageConfig } from './config';
 import { retrieveData } from './data';
 import {
   uuidRegex,
@@ -45,7 +49,52 @@ export const getIdFromDatasetIdentifier = (
   return match[0];
 };
 
-export const getDatasetData = async <T>(
+export const downloadDatasetData = async (
+  id: TDataGovUUID,
+  outputDirectory: string,
+  config?: IPackageConfig
+) => {
+  const { network } = withConfig(config);
+  const { pageSize, simultaneousRequests } = network;
+
+  const dataSetMeta = await getDatasetMeta(id);
+
+  const numRequests = Math.ceil(dataSetMeta.total_rows / pageSize);
+  const offsets = Array.from({ length: numRequests }, (_, i) => i).map(
+    (i) => i * pageSize
+  );
+
+  // eslint-disable-next-line no-console
+  console.info({
+    offset: dataSetMeta.offset,
+    total_rows: dataSetMeta.total_rows,
+    size: dataSetMeta.size,
+    numRequests,
+    offsets,
+  });
+
+  const limit = pLimit(simultaneousRequests);
+
+  return Promise.allSettled(
+    offsets.map((offset) =>
+      limit(() =>
+        getDatasetDataPage(id, offset, pageSize, {
+          requestConfig: { 'axios-retry': { retries: 3 } },
+        })
+      ).then((data) => {
+        const fileName = `${id}_${offset}.json`;
+        const filePath = path.resolve(outputDirectory, fileName);
+
+        return outputJson(filePath, data);
+      })
+    )
+  );
+};
+
+// const pLimit = async (concurrency: number) =>
+//   import('p-limit').then((m) => m.default).then((fn) => fn(concurrency));
+
+export const getDatasetDataPage = async <T>(
   id: TDataGovUUID,
   offset = 0,
   pageSize = 5_000,
