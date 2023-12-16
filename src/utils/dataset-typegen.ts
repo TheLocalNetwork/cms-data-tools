@@ -1,4 +1,4 @@
-import { camelCase, upperFirst } from 'lodash';
+import { camelCase, snakeCase, upperFirst } from 'lodash';
 import { getCatalogDataSetById, getCatalogDataSetsByKeyword } from '../catalog';
 import { type IPackageConfig } from '../config';
 import { getDatasetMeta } from '../dataset';
@@ -69,7 +69,8 @@ const generateDatasetTypeFromFields = <T>(
 const generateDatasetTypeFromFieldsItem = <T>(
   field: IDataGovDatasetTableSchemaField<T>
 ) => {
-  const key = field.name.toString();
+  const key = snakeCase(field.name.toString());
+
   const type =
     field.type in schemaFieldsTypeMap
       ? schemaFieldsTypeMap[field.type]
