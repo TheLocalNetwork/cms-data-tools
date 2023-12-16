@@ -9,6 +9,7 @@ import {
   uuidRegex,
   type IDataGovCatalogDataset,
   type IDataGovDataset,
+  type IDataGovDatasetData,
   type TDataGovUUID,
 } from './types';
 
@@ -74,25 +75,31 @@ export const downloadDatasetData = async (
   });
 
   const limit = pLimit(simultaneousRequests);
+  const pageConfig = withConfig({
+    requestConfig: { 'axios-retry': { retries: 3 } },
+  });
+
+  const promiseFn = (offset: number) =>
+    getDatasetDataPage(id, offset, pageSize, pageConfig).then((data) =>
+      writeDatasetDataPage(data, id, offset, outputDirectory)
+    );
 
   return Promise.allSettled(
-    offsets.map((offset) =>
-      limit(() =>
-        getDatasetDataPage(id, offset, pageSize, {
-          requestConfig: { 'axios-retry': { retries: 3 } },
-        })
-      ).then((data) => {
-        const fileName = `${id}_${offset}.json`;
-        const filePath = path.resolve(outputDirectory, fileName);
-
-        return outputJson(filePath, data);
-      })
-    )
+    offsets.map((offset) => limit(() => promiseFn(offset)))
   );
 };
 
-// const pLimit = async (concurrency: number) =>
-//   import('p-limit').then((m) => m.default).then((fn) => fn(concurrency));
+const writeDatasetDataPage = async (
+  data: IDataGovDatasetData[],
+  id: TDataGovUUID,
+  offset: number,
+  outputDirectory: string
+) => {
+  const fileName = `${id}_${offset}.json`;
+  const filePath = path.resolve(outputDirectory, fileName);
+
+  return outputJson(filePath, data);
+};
 
 export const getDatasetDataPage = async <T>(
   id: TDataGovUUID,
