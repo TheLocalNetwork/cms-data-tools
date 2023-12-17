@@ -13,6 +13,7 @@ import {
   type IDataGovDatasetData,
   type TDataGovUUID,
 } from './types';
+import { getDateFromHeader } from './utils/net';
 import { sleep } from './utils/promise';
 
 export {
@@ -30,7 +31,7 @@ export const getDatasetUrl = (
     searchParams?.toString(),
   ]).join('?');
 
-export const getDatasetMeta = async <T>(
+export const getDatasetMetaRequest = async <T>(
   id: TDataGovUUID,
   config?: Partial<IPackageConfig>
 ) => {
@@ -39,9 +40,14 @@ export const getDatasetMeta = async <T>(
   const datasetUrl = getDatasetUrl(id, searchParams);
 
   return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then(
-    (result) => result.data.meta
+    (result) => result
   );
 };
+
+export const getDatasetMeta = async <T>(
+  id: TDataGovUUID,
+  config?: Partial<IPackageConfig>
+) => getDatasetMetaRequest<T>(id, config).then((result) => result.data.meta);
 
 export const getIdFromDatasetIdentifier = (
   identifier: IDataGovCatalogDataset['identifier']
@@ -140,4 +146,15 @@ const writeDatasetDataPage = async (
   const filePath = path.resolve(outputDirectory, id, fileName);
 
   return outputJson(filePath, data).then(() => fileName);
+};
+
+export const isDatasetUpdateAvailable = async (
+  id: string,
+  lastModifiedDate: Date,
+  config: Partial<IPackageConfig> = {}
+) => {
+  return getDatasetMetaRequest(id, config).then(({ headers }) => {
+    const lastModifiedRemoteDate = getDateFromHeader(headers, 'last-modified');
+    return lastModifiedRemoteDate > lastModifiedDate;
+  });
 };
