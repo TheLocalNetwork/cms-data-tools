@@ -43,15 +43,6 @@ export const requestRemoteMeta = <
   });
 };
 
-// export const isRemoteNewer = async <ResponseData, RequestData>(
-//   slug: string,
-//   cachedResponse: AxiosResponse<ResponseData, RequestData>,
-//   config: Partial<IPackageConfig> = {}
-// ) =>
-//   requestRemoteMeta<ResponseData, RequestData>(slug, config).then(
-//     (remoteResponse) => isCacheFresh(cachedResponse, remoteResponse)
-//   );
-
 export const requestRemote = async <
   ResponseData = unknown,
   RequestData = unknown,
@@ -87,4 +78,13 @@ export const getHeaderValue = (
   const val = headers[key] as AxiosHeaderValue;
 
   return isString(val) ? val : undefined;
+};
+
+export const getDateFromHeader = (
+  headers: AxiosResponse['headers'],
+  key: string
+) => {
+  const dateHeader = getHeaderValue(headers, key);
+  const date = new Date(dateHeader ?? 0);
+  return date;
 };

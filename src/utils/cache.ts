@@ -3,7 +3,7 @@ import { outputJson, readJson, remove } from 'fs-extra';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { makeSafePath } from './fs';
-import { getHeaderValue } from './net';
+import { getDateFromHeader, getHeaderValue } from './net';
 
 export const getDefaultCacheDirectory = () =>
   path.join(tmpdir(), `cache-cms-data-sync`);
@@ -52,11 +52,8 @@ export const isCacheFresh = <T>(
   cachedResponse: AxiosResponse<T>,
   remoteResponse: AxiosResponse<T>
 ): boolean => {
-  const cachedHeader = getHeaderValue(cachedResponse.headers, 'last-modified');
-  const remoteHeader = getHeaderValue(remoteResponse.headers, 'last-modified');
-
-  const cachedDate = new Date(cachedHeader ?? 0);
-  const remoteDate = new Date(remoteHeader ?? 0);
+  const cachedDate = getDateFromHeader(cachedResponse.headers, 'last-modified');
+  const remoteDate = getDateFromHeader(remoteResponse.headers, 'last-modified');
 
   return cachedDate >= remoteDate;
 };
