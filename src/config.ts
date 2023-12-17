@@ -2,6 +2,12 @@ import { type AxiosRequestConfig } from 'axios';
 import { type IAxiosRetryConfigExtended } from 'axios-retry';
 import { getDefaultCacheDirectory } from './utils/cache';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJson = require('../package.json') as {
+  name: string;
+  version: string;
+};
+
 export interface IAxiosRequestConfigWithRetry extends AxiosRequestConfig {
   'axios-retry'?: IAxiosRetryConfigExtended;
 }
@@ -40,6 +46,9 @@ export const defaultNetworkConfig: Readonly<INetworkConfig> = {
 
 export const defaultRequestConfig: Readonly<IAxiosRequestConfigWithRetry> = {
   baseURL: `https://data.cms.gov`,
+  headers: {
+    'User-Agent': `${packageJson.name}/${packageJson.version}}`,
+  },
   'axios-retry': {
     retries: 0,
   },
