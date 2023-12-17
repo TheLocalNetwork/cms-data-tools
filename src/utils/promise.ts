@@ -24,3 +24,6 @@ export const handleSettledPromise = <T>(
 
   return fulfilled.map((item) => item.value);
 };
+
+export const sleep = (ms = 0) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
