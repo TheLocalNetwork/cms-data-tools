@@ -3,6 +3,7 @@ import { compact } from 'lodash';
 import path from 'node:path';
 // import pLimit from 'p-limit';
 import pLimit from 'p-limit';
+import { getCatalogDataSetsByKeyword } from './catalog';
 import { withConfig, type IPackageConfig } from './config';
 import { retrieveData } from './data';
 import {
@@ -12,6 +13,7 @@ import {
   type IDataGovDatasetData,
   type TDataGovUUID,
 } from './types';
+import { sleep } from './utils/promise';
 
 export {
   generateDatasetTypeById,
@@ -53,10 +55,11 @@ export const getIdFromDatasetIdentifier = (
 export const downloadDatasetData = async (
   id: TDataGovUUID,
   outputDirectory: string,
-  config?: IPackageConfig
+  config?: IPackageConfig,
+  plimit = pLimit(withConfig(config).network.simultaneousRequests)
 ) => {
   const { network } = withConfig(config);
-  const { pageSize, simultaneousRequests } = network;
+  const { pageSize } = network;
 
   const dataSetMeta = await getDatasetMeta(id);
 
@@ -72,31 +75,41 @@ export const downloadDatasetData = async (
     offsets,
   });
 
-  const limit = pLimit(simultaneousRequests);
-  const pageConfig = withConfig({
-    requestConfig: { 'axios-retry': { retries: 3 } },
-  });
-
-  const promiseFn = (offset: number) =>
-    getDatasetDataPage(id, offset, pageSize, pageConfig).then((data) =>
-      writeDatasetDataPage(data, id, offset, outputDirectory)
-    );
+  const iterator = (offset: number) => {
+    const { pendingCount, activeCount } = plimit;
+    const offsetPadded = offset.toLocaleString().padStart(11, ' ');
+    const pendingPadded = pendingCount.toLocaleString().padStart(5, ' ');
+    const timerLabel = `${id}\t${offsetPadded}\tstatus: ${activeCount} / ${pendingPadded}`;
+    console.time(timerLabel);
+    return getDatasetDataPage(id, offset, pageSize, config)
+      .then((data) => writeDatasetDataPage(data, id, offset, outputDirectory))
+      .then(() => sleep(network.pageWaitMS))
+      .finally(() => {
+        console.timeEnd(timerLabel);
+      });
+  };
 
   return Promise.allSettled(
-    offsets.map((offset) => limit(() => promiseFn(offset)))
+    offsets.map((offset) => plimit(() => iterator(offset)))
   );
 };
 
-const writeDatasetDataPage = async (
-  data: IDataGovDatasetData[],
-  id: TDataGovUUID,
-  offset: number,
-  outputDirectory: string
+export const downloadDatasetDataByKeyword = async (
+  keyword: string,
+  outputDirectory: string,
+  config?: IPackageConfig,
+  plimit = pLimit(withConfig(config).network.simultaneousRequests)
 ) => {
-  const fileName = `${id}_${offset}.json`;
-  const filePath = path.resolve(outputDirectory, fileName);
+  const datasetLimit = pLimit(1); // only process one dataset at a time
 
-  return outputJson(filePath, data);
+  return getCatalogDataSetsByKeyword(keyword, config).then((datasets) => {
+    const iterator = ({ id }: IDataGovCatalogDataset) =>
+      downloadDatasetData(id, outputDirectory, config, plimit);
+
+    return Promise.allSettled(
+      datasets.map((dataset) => datasetLimit(() => iterator(dataset)))
+    );
+  });
 };
 
 export const getDatasetDataPage = async <T>(
@@ -111,11 +124,20 @@ export const getDatasetDataPage = async <T>(
   };
   const searchParams = new URLSearchParams(params);
   const datasetUrl = getDatasetUrl(id, searchParams);
-  console.time(datasetUrl);
 
-  return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then((result) => {
-    const { data } = result.data;
-    console.timeEnd(datasetUrl);
-    return data;
-  });
+  return retrieveData<IDataGovDataset<T>>(datasetUrl, config).then(
+    (result) => result.data.data
+  );
+};
+
+const writeDatasetDataPage = async (
+  data: IDataGovDatasetData[],
+  id: TDataGovUUID,
+  offset: number,
+  outputDirectory: string
+) => {
+  const fileName = `${offset}.json`;
+  const filePath = path.resolve(outputDirectory, id, fileName);
+
+  return outputJson(filePath, data).then(() => fileName);
 };
