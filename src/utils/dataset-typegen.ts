@@ -66,10 +66,16 @@ const generateDatasetTypeFromFields = <T>(
   return typeScript;
 };
 
+export const getFieldNameKey = <T>(
+  field: IDataGovDatasetTableSchemaField<T>
+) => {
+  return snakeCase(field.name.toString());
+};
+
 const generateDatasetTypeFromFieldsItem = <T>(
   field: IDataGovDatasetTableSchemaField<T>
 ) => {
-  const key = snakeCase(field.name.toString());
+  const key = getFieldNameKey(field);
 
   const type =
     field.type in schemaFieldsTypeMap
