@@ -1,4 +1,5 @@
 import { camelCase, snakeCase, upperFirst } from 'lodash';
+import * as prettier from 'prettier';
 import { getCatalogDataSetById, getCatalogDataSetsByKeyword } from '../catalog';
 import { type IPackageConfig } from '../config';
 import { getDatasetMeta } from '../dataset';
@@ -71,7 +72,11 @@ const generateDatasetTypeFromFields = <T>(
     `}`,
   ].join('\n');
 
-  return typeScript;
+  const prettyTypeScript = prettier.format(typeScript, {
+    parser: 'typescript',
+  });
+
+  return prettyTypeScript;
 };
 
 const getInterfaceJsDoc = <T>(
