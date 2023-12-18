@@ -3,6 +3,7 @@ import { getCatalogDataSetById, getCatalogDataSetsByKeyword } from '../catalog';
 import { type IPackageConfig } from '../config';
 import { getDatasetMeta } from '../dataset';
 import {
+  type IDataGovCatalogDataset,
   type IDataGovDatasetTableSchemaField,
   type TDataGovUUID,
 } from '../types';
@@ -31,7 +32,8 @@ export const generateDatasetTypeById = async <T>(
 
     return generateDatasetTypeFromFields(
       fields,
-      interfaceName ?? defaultInterfaceName
+      interfaceName ?? defaultInterfaceName,
+      catalogDataset
     );
   });
 };
@@ -51,19 +53,54 @@ export const generateDatasetTypeByKeyword = async (keyword: string) => {
 
 const generateDatasetTypeFromFields = <T>(
   fields: IDataGovDatasetTableSchemaField<T>[],
-  interfaceName: string
+  interfaceName: string,
+  catalogDataset?: IDataGovCatalogDataset
 ) => {
   const properties = fields.map((field) =>
     generateDatasetTypeFromFieldsItem(field)
   );
 
+  const interfaceJsDoc = catalogDataset
+    ? getInterfaceJsDoc(fields, interfaceName, catalogDataset)
+    : '';
+
   const typeScript = [
+    interfaceJsDoc,
     `export interface ${interfaceName} {`,
     ...properties,
     `}`,
   ].join('\n');
 
   return typeScript;
+};
+
+const getInterfaceJsDoc = <T>(
+  fields: IDataGovDatasetTableSchemaField<T>[],
+  interfaceName: string,
+  catalogDataset: IDataGovCatalogDataset
+) => {
+  const properties = fields.map(
+    (field) => `@property {${field.type}} ${getFieldNameKey(field)}`
+  );
+  const originalJSON = Object.entries(catalogDataset).map(([k, v]) => {
+    if (k === 'distribution') return `${JSON.stringify(k)}: []`;
+    return `${JSON.stringify(k)}: ${JSON.stringify(v)}`;
+  });
+  const jsDocLineSeparator = `\n * `;
+  const interfaceJsDocBody =
+    ` * ` +
+    [
+      `@name ${interfaceName}`,
+      `@summary ${catalogDataset.title}`,
+      ...properties,
+      `@description ${catalogDataset.description}`,
+      '```',
+      ...originalJSON,
+      '```',
+    ].join(jsDocLineSeparator);
+  const interfaceJsDoc = [`/**`, interfaceJsDocBody, ` */`].join(`\n`);
+
+  return interfaceJsDoc;
 };
 
 export const getFieldNameKey = <T>(
@@ -90,7 +127,7 @@ const generateDatasetTypeFromFieldsItem = <T>(
 const generateDatasetTypeFromFieldsItemJsDoc = <T>(
   field: IDataGovDatasetTableSchemaField<T>
 ) => {
-  const key = field.name.toString();
+  const name = getFieldNameKey(field);
   const jsDocLineSeparator = `\n * `;
 
   const originalJSON = Object.entries(field).map(
@@ -100,7 +137,7 @@ const generateDatasetTypeFromFieldsItemJsDoc = <T>(
   const jsDocBody =
     ` * ` +
     [
-      `@name ${key}`,
+      `@name ${name}`,
       `@type {${field.type}}`,
       `@description`,
       '```',
